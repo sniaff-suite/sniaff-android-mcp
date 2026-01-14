@@ -64,12 +64,23 @@ export class SessionManager extends EventEmitter {
       // State: SETUP_AVD - Ensure SniaffPhone AVD exists (create + root if needed)
       this.updateState(sessionId, SessionState.SETUP_AVD);
       const avdSetupResult = await this.avdSetupAdapter.ensureSniaffAvd();
+      // First run requires Magisk setup if AVD was just created and rooted
+      const isFirstRun = avdSetupResult.wasCreated && avdSetupResult.wasRooted;
+
       avdSetupInfo = {
         avdName: avdSetupResult.avdName,
         wasCreated: avdSetupResult.wasCreated,
         wasRooted: avdSetupResult.wasRooted,
         systemImage: avdSetupResult.systemImage,
+        requiresMagiskSetup: isFirstRun,
       };
+
+      if (isFirstRun) {
+        warnings.push(
+          'FIRST RUN: Magisk setup required. Please open the Magisk app on the emulator and complete the initial configuration. ' +
+          'This is a one-time setup - tap "OK" when Magisk prompts to complete installation, then the device will reboot.'
+        );
+      }
 
       // Override avdName with SniaffPhone (the managed AVD)
       const avdName = avdSetupResult.avdName;
@@ -134,7 +145,13 @@ export class SessionManager extends EventEmitter {
           wasCreated: recreatedAvd.wasCreated,
           wasRooted: recreatedAvd.wasRooted,
           systemImage: recreatedAvd.systemImage,
+          requiresMagiskSetup: true, // Recreation always requires Magisk setup
         };
+
+        warnings.push(
+          'FIRST RUN: Magisk setup required. Please open the Magisk app on the emulator and complete the initial configuration. ' +
+          'This is a one-time setup - tap "OK" when Magisk prompts to complete installation, then the device will reboot.'
+        );
 
         // Restart emulator with newly rooted AVD
         this.updateState(sessionId, SessionState.START_EMULATOR);

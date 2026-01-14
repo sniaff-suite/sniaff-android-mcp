@@ -28,6 +28,11 @@ export interface AvdSetupInfo {
   wasCreated: boolean;
   wasRooted: boolean;
   systemImage: string;
+  /**
+   * True if this is first run and user needs to complete Magisk setup manually.
+   * User should open Magisk app on the emulator and complete the initial configuration.
+   */
+  requiresMagiskSetup: boolean;
 }
 
 export interface SessionStartResult {
