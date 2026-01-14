@@ -4,7 +4,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { SessionManager } from '../core/session-manager.js';
 import { Config } from '../config.js';
-import { SmaliusError, ErrorCode } from '../types/errors.js';
+import { SniaffError, ErrorCode } from '../types/errors.js';
 
 const execPromise = promisify(exec);
 
@@ -14,10 +14,10 @@ export function registerShellTool(
   config: Config
 ): void {
   server.tool(
-    'smalius.shell',
+    'sniaff.shell',
     'Execute a shell command on the Android emulator and return stdout/stderr/exit code. Useful for running adb shell commands, getting device properties, or executing scripts on the device.',
     {
-      sessionId: z.string().min(1).describe('The session ID returned by smalius.start'),
+      sessionId: z.string().min(1).describe('The session ID returned by sniaff.start'),
       cmd: z.string().min(1).describe('The command to execute on the device'),
       timeoutSec: z
         .number()
@@ -39,7 +39,7 @@ export function registerShellTool(
       try {
         const session = sessionManager.getSession(args.sessionId);
         if (!session) {
-          throw new SmaliusError(
+          throw new SniaffError(
             ErrorCode.SESSION_NOT_FOUND,
             `Session '${args.sessionId}' not found`
           );
@@ -82,7 +82,7 @@ export function registerShellTool(
           const err = error as Error & { code?: number | string; stdout?: string; stderr?: string; killed?: boolean };
 
           if (err.killed) {
-            throw new SmaliusError(
+            throw new SniaffError(
               ErrorCode.ADB_COMMAND_FAILED,
               `Command timed out after ${args.timeoutSec} seconds`,
               { deviceId, cmd: args.cmd, timeout: args.timeoutSec }
@@ -113,10 +113,10 @@ export function registerShellTool(
           ],
         };
       } catch (error) {
-        const smaliusError =
-          error instanceof SmaliusError
+        const sniaffError =
+          error instanceof SniaffError
             ? error
-            : new SmaliusError(
+            : new SniaffError(
                 ErrorCode.INTERNAL_ERROR,
                 error instanceof Error ? error.message : String(error),
                 { originalError: error instanceof Error ? error.stack : undefined }
@@ -129,7 +129,7 @@ export function registerShellTool(
               text: JSON.stringify(
                 {
                   success: false,
-                  error: smaliusError.toJSON(),
+                  error: sniaffError.toJSON(),
                 },
                 null,
                 2

@@ -1,5 +1,6 @@
 export enum SessionState {
   IDLE = 'IDLE',
+  SETUP_AVD = 'SETUP_AVD',
   CREATE_WORKSPACE = 'CREATE_WORKSPACE',
   START_MITM = 'START_MITM',
   START_EMULATOR = 'START_EMULATOR',
@@ -26,6 +27,13 @@ export interface Session extends SessionMeta {
   emulatorPid: number | null;
 }
 
+export interface AvdSetupInfo {
+  avdName: string;
+  wasCreated: boolean;
+  wasRooted: boolean;
+  systemImage: string;
+}
+
 export interface SessionStartResult {
   sessionId: string;
   workspacePath: string;
@@ -34,5 +42,6 @@ export interface SessionStartResult {
   adbPort: number;
   proxyConfigured: boolean;
   state: SessionState;
+  avdSetup?: AvdSetupInfo;
   warnings?: string[];
 }

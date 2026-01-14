@@ -1,10 +1,6 @@
 import { z } from 'zod';
 
 export const StartInputSchema = z.object({
-  avdName: z
-    .string()
-    .min(1)
-    .describe('Name of the Android Virtual Device (AVD) to start'),
   mitmPort: z
     .number()
     .int()

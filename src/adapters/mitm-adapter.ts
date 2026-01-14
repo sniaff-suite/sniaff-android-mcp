@@ -4,7 +4,7 @@ import { Config } from '../config.js';
 import { ProcessSupervisor } from '../core/process-supervisor.js';
 import { PortFinder } from '../utils/port-finder.js';
 import { Logger } from '../utils/logger.js';
-import { SmaliusError, ErrorCode } from '../types/errors.js';
+import { SniaffError, ErrorCode } from '../types/errors.js';
 
 export interface MitmStartOptions {
   port?: number;
@@ -59,7 +59,7 @@ export class MitmAdapter {
           this.config.defaultMitmPort + 100
         );
       } catch {
-        throw new SmaliusError(
+        throw new SniaffError(
           ErrorCode.MITM_PORT_UNAVAILABLE,
           `No available port found starting from ${options.port || this.config.defaultMitmPort}`,
           { attemptedPort: port }
@@ -83,7 +83,7 @@ export class MitmAdapter {
     try {
       logStream = createWriteStream(options.logFile, { flags: 'a' });
     } catch (err) {
-      throw new SmaliusError(
+      throw new SniaffError(
         ErrorCode.MITM_START_FAILED,
         `Failed to create log file: ${options.logFile}`,
         { error: String(err) }
@@ -100,7 +100,7 @@ export class MitmAdapter {
       await this.delay(500);
 
       if (!this.supervisor.isRunning(info.pid)) {
-        throw new SmaliusError(ErrorCode.MITM_START_FAILED, 'mitmdump process exited immediately', {
+        throw new SniaffError(ErrorCode.MITM_START_FAILED, 'mitmdump process exited immediately', {
           port,
         });
       }
@@ -110,18 +110,18 @@ export class MitmAdapter {
       return { pid: info.pid, port };
     } catch (error) {
       logStream.end();
-      if (error instanceof SmaliusError) throw error;
+      if (error instanceof SniaffError) throw error;
 
       const err = error as Error & { code?: string };
       if (err.code === 'ENOENT') {
-        throw new SmaliusError(
+        throw new SniaffError(
           ErrorCode.MITMDUMP_NOT_FOUND,
           `mitmdump not found at: ${this.config.mitmproxyPath}`,
           { path: this.config.mitmproxyPath }
         );
       }
 
-      throw new SmaliusError(
+      throw new SniaffError(
         ErrorCode.MITM_START_FAILED,
         `Failed to start mitmdump: ${err.message}`,
         { port, command: this.config.mitmproxyPath }

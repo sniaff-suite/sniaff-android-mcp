@@ -19,10 +19,10 @@ async function main() {
   // Initialize logger
   const logger = new Logger({
     logDir: config.logsDir,
-    name: 'smalius-mcp',
+    name: 'sniaff-android-mcp',
   });
 
-  logger.info('Starting smalius-mcp server');
+  logger.info('Starting sniaff-android-mcp server');
 
   // Initialize session manager
   const sessionManager = new SessionManager({
@@ -32,7 +32,7 @@ async function main() {
 
   // Create MCP server
   const server = new McpServer({
-    name: 'smalius-mcp',
+    name: 'sniaff-android-mcp',
     version: '0.1.0',
   });
 
@@ -52,7 +52,7 @@ async function main() {
 
   // Handle graceful shutdown
   const cleanup = async () => {
-    logger.info('Shutting down smalius-mcp');
+    logger.info('Shutting down sniaff-android-mcp');
 
     // Stop all active sessions
     for (const session of sessionManager.getAllSessions()) {

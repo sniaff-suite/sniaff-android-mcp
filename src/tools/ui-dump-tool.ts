@@ -6,7 +6,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import { SessionManager } from '../core/session-manager.js';
 import { Config } from '../config.js';
-import { SmaliusError, ErrorCode } from '../types/errors.js';
+import { SniaffError, ErrorCode } from '../types/errors.js';
 
 const execPromise = promisify(exec);
 
@@ -16,16 +16,16 @@ export function registerUiDumpTool(
   config: Config
 ): void {
   server.tool(
-    'smalius.ui_dump',
+    'sniaff.ui_dump',
     'Dump the current UI hierarchy from the Android emulator as XML. Useful for understanding the current screen state and finding UI elements for automation.',
     {
-      sessionId: z.string().min(1).describe('The session ID returned by smalius.start'),
+      sessionId: z.string().min(1).describe('The session ID returned by sniaff.start'),
     },
     async (args) => {
       try {
         const session = sessionManager.getSession(args.sessionId);
         if (!session) {
-          throw new SmaliusError(
+          throw new SniaffError(
             ErrorCode.SESSION_NOT_FOUND,
             `Session '${args.sessionId}' not found`
           );
@@ -44,7 +44,7 @@ export function registerUiDumpTool(
           );
         } catch (error) {
           const err = error as Error;
-          throw new SmaliusError(
+          throw new SniaffError(
             ErrorCode.ADB_COMMAND_FAILED,
             `Failed to dump UI: ${err.message}`,
             { deviceId, command: 'uiautomator dump' }
@@ -58,7 +58,7 @@ export function registerUiDumpTool(
           );
         } catch (error) {
           const err = error as Error;
-          throw new SmaliusError(
+          throw new SniaffError(
             ErrorCode.ADB_COMMAND_FAILED,
             `Failed to pull UI dump: ${err.message}`,
             { deviceId, remoteFile, localFilePath }
@@ -97,10 +97,10 @@ export function registerUiDumpTool(
           ],
         };
       } catch (error) {
-        const smaliusError =
-          error instanceof SmaliusError
+        const sniaffError =
+          error instanceof SniaffError
             ? error
-            : new SmaliusError(
+            : new SniaffError(
                 ErrorCode.INTERNAL_ERROR,
                 error instanceof Error ? error.message : String(error),
                 { originalError: error instanceof Error ? error.stack : undefined }
@@ -113,7 +113,7 @@ export function registerUiDumpTool(
               text: JSON.stringify(
                 {
                   success: false,
-                  error: smaliusError.toJSON(),
+                  error: sniaffError.toJSON(),
                 },
                 null,
                 2

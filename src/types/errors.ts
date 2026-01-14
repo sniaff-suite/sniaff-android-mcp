@@ -14,16 +14,24 @@ export enum ErrorCode {
   SESSION_NOT_FOUND = 'SESSION_NOT_FOUND',
   ROLLBACK_FAILED = 'ROLLBACK_FAILED',
   INTERNAL_ERROR = 'INTERNAL_ERROR',
+  // AVD Setup errors
+  AVDMANAGER_NOT_FOUND = 'AVDMANAGER_NOT_FOUND',
+  SDKMANAGER_NOT_FOUND = 'SDKMANAGER_NOT_FOUND',
+  SYSTEM_IMAGE_NOT_FOUND = 'SYSTEM_IMAGE_NOT_FOUND',
+  SYSTEM_IMAGE_DOWNLOAD_FAILED = 'SYSTEM_IMAGE_DOWNLOAD_FAILED',
+  AVD_CREATE_FAILED = 'AVD_CREATE_FAILED',
+  ROOTAVD_NOT_FOUND = 'ROOTAVD_NOT_FOUND',
+  ROOTAVD_FAILED = 'ROOTAVD_FAILED',
 }
 
-export class SmaliusError extends Error {
+export class SniaffError extends Error {
   constructor(
     public readonly code: ErrorCode,
     message: string,
     public readonly details?: Record<string, unknown>
   ) {
     super(message);
-    this.name = 'SmaliusError';
+    this.name = 'SniaffError';
   }
 
   toJSON(): { code: ErrorCode; message: string; details?: Record<string, unknown> } {

@@ -5,12 +5,13 @@ import { WorkspaceManager, Workspace } from './workspace-manager.js';
 import { ProcessSupervisor } from './process-supervisor.js';
 import { MitmAdapter } from '../adapters/mitm-adapter.js';
 import { EmulatorAdapter } from '../adapters/emulator-adapter.js';
+import { AvdSetupAdapter, AvdSetupResult } from '../adapters/avd-setup-adapter.js';
 import { PortFinder } from '../utils/port-finder.js';
 import { Logger } from '../utils/logger.js';
 import { generateSessionId } from '../utils/id-generator.js';
-import { Session, SessionState, SessionStartResult } from '../types/session.js';
+import { Session, SessionState, SessionStartResult, AvdSetupInfo } from '../types/session.js';
 import { StartInput } from '../types/schemas.js';
-import { SmaliusError, ErrorCode } from '../types/errors.js';
+import { SniaffError, ErrorCode } from '../types/errors.js';
 
 export interface SessionManagerDeps {
   config: Config;
@@ -26,6 +27,7 @@ export class SessionManager extends EventEmitter {
   private portFinder: PortFinder;
   private mitmAdapter: MitmAdapter;
   private emulatorAdapter: EmulatorAdapter;
+  private avdSetupAdapter: AvdSetupAdapter;
 
   constructor(deps: SessionManagerDeps) {
     super();
@@ -50,6 +52,12 @@ export class SessionManager extends EventEmitter {
       portFinder: this.portFinder,
       logger: this.logger,
     });
+
+    this.avdSetupAdapter = new AvdSetupAdapter({
+      config: this.config,
+      supervisor: this.supervisor,
+      logger: this.logger,
+    });
   }
 
   async startSession(input: StartInput): Promise<SessionStartResult> {
@@ -57,17 +65,31 @@ export class SessionManager extends EventEmitter {
     let session: Session | null = null;
     let workspace: Workspace | null = null;
     const warnings: string[] = [];
+    let avdSetupInfo: AvdSetupInfo | undefined;
 
-    this.logger.info('Starting session', { sessionId, avdName: input.avdName });
+    this.logger.info('Starting session', { sessionId });
 
     try {
+      // State: SETUP_AVD - Ensure SniaffPhone AVD exists (create + root if needed)
+      this.updateState(sessionId, SessionState.SETUP_AVD);
+      const avdSetupResult = await this.avdSetupAdapter.ensureSniaffAvd();
+      avdSetupInfo = {
+        avdName: avdSetupResult.avdName,
+        wasCreated: avdSetupResult.wasCreated,
+        wasRooted: avdSetupResult.wasRooted,
+        systemImage: avdSetupResult.systemImage,
+      };
+
+      // Override avdName with SniaffPhone (the managed AVD)
+      const avdName = avdSetupResult.avdName;
+
       // State: CREATE_WORKSPACE
       this.updateState(sessionId, SessionState.CREATE_WORKSPACE);
       workspace = await this.workspaceManager.create(sessionId);
 
       session = {
         sessionId,
-        avdName: input.avdName,
+        avdName: avdName,
         mitmPort: 0,
         emulatorPort: 0,
         adbPort: 0,
@@ -96,7 +118,7 @@ export class SessionManager extends EventEmitter {
       session.state = SessionState.START_EMULATOR;
 
       const emulatorResult = await this.emulatorAdapter.start({
-        avdName: input.avdName,
+        avdName: avdName,
         port: input.emulatorPort,
         headless: input.headless,
         logFile: path.join(workspace.logsDir, 'emulator.log'),
@@ -158,6 +180,7 @@ export class SessionManager extends EventEmitter {
         adbPort: session.adbPort,
         proxyConfigured,
         state: SessionState.READY,
+        avdSetup: avdSetupInfo,
       };
 
       if (warnings.length > 0) {
@@ -174,11 +197,11 @@ export class SessionManager extends EventEmitter {
 
       await this.rollback(session);
 
-      if (error instanceof SmaliusError) {
+      if (error instanceof SniaffError) {
         throw error;
       }
 
-      throw new SmaliusError(
+      throw new SniaffError(
         ErrorCode.INTERNAL_ERROR,
         `Session start failed: ${error instanceof Error ? error.message : String(error)}`,
         { sessionId }
@@ -244,7 +267,7 @@ export class SessionManager extends EventEmitter {
   async stopSession(sessionId: string): Promise<void> {
     const session = this.sessions.get(sessionId);
     if (!session) {
-      throw new SmaliusError(ErrorCode.SESSION_NOT_FOUND, `Session '${sessionId}' not found`);
+      throw new SniaffError(ErrorCode.SESSION_NOT_FOUND, `Session '${sessionId}' not found`);
     }
 
     this.logger.info('Stopping session', { sessionId });

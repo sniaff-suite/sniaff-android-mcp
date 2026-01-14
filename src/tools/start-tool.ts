@@ -1,17 +1,13 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { SessionManager } from '../core/session-manager.js';
-import { SmaliusError, ErrorCode } from '../types/errors.js';
+import { SniaffError, ErrorCode } from '../types/errors.js';
 
 export function registerStartTool(server: McpServer, sessionManager: SessionManager): void {
   server.tool(
-    'smalius.start',
-    'Start a new Android emulator session with MITM proxy for traffic interception. Returns session info with ports and workspace path.',
+    'sniaff.start',
+    'Start a new Android emulator session with MITM proxy for traffic interception. Automatically creates and roots the SniaffPhone AVD if it does not exist. Returns session info with ports and workspace path.',
     {
-      avdName: z
-        .string()
-        .min(1)
-        .describe('Name of the Android Virtual Device (AVD) to start'),
       mitmPort: z
         .number()
         .int()
@@ -41,7 +37,6 @@ export function registerStartTool(server: McpServer, sessionManager: SessionMana
     async (args) => {
       try {
         const result = await sessionManager.startSession({
-          avdName: args.avdName,
           mitmPort: args.mitmPort,
           emulatorPort: args.emulatorPort,
           bootTimeout: args.bootTimeout,
@@ -64,10 +59,10 @@ export function registerStartTool(server: McpServer, sessionManager: SessionMana
           ],
         };
       } catch (error) {
-        const smaliusError =
-          error instanceof SmaliusError
+        const sniaffError =
+          error instanceof SniaffError
             ? error
-            : new SmaliusError(
+            : new SniaffError(
                 ErrorCode.INTERNAL_ERROR,
                 error instanceof Error ? error.message : String(error),
                 { originalError: error instanceof Error ? error.stack : undefined }
@@ -80,7 +75,7 @@ export function registerStartTool(server: McpServer, sessionManager: SessionMana
               text: JSON.stringify(
                 {
                   success: false,
-                  error: smaliusError.toJSON(),
+                  error: sniaffError.toJSON(),
                 },
                 null,
                 2

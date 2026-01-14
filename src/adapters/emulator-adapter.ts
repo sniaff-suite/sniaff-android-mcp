@@ -5,7 +5,7 @@ import { Config } from '../config.js';
 import { ProcessSupervisor } from '../core/process-supervisor.js';
 import { PortFinder } from '../utils/port-finder.js';
 import { Logger } from '../utils/logger.js';
-import { SmaliusError, ErrorCode } from '../types/errors.js';
+import { SniaffError, ErrorCode } from '../types/errors.js';
 
 const execPromise = promisify(exec);
 
@@ -49,13 +49,13 @@ export class EmulatorAdapter {
     } catch (error) {
       const err = error as Error & { code?: string };
       if (err.code === 'ENOENT' || err.message?.includes('ENOENT')) {
-        throw new SmaliusError(
+        throw new SniaffError(
           ErrorCode.EMULATOR_BINARY_NOT_FOUND,
           `Emulator not found at: ${this.config.emulatorPath}`,
           { path: this.config.emulatorPath }
         );
       }
-      throw new SmaliusError(
+      throw new SniaffError(
         ErrorCode.EMULATOR_START_FAILED,
         `Failed to list AVDs: ${err.message}`,
         { command: `${this.config.emulatorPath} -list-avds` }
@@ -67,7 +67,7 @@ export class EmulatorAdapter {
     // Verify AVD exists
     const avds = await this.listAvds();
     if (!avds.includes(options.avdName)) {
-      throw new SmaliusError(ErrorCode.AVD_NOT_FOUND, `AVD '${options.avdName}' not found`, {
+      throw new SniaffError(ErrorCode.AVD_NOT_FOUND, `AVD '${options.avdName}' not found`, {
         availableAvds: avds,
       });
     }
@@ -79,7 +79,7 @@ export class EmulatorAdapter {
     try {
       consolePort = await this.portFinder.findAvailableEven(consolePort, 5682);
     } catch {
-      throw new SmaliusError(
+      throw new SniaffError(
         ErrorCode.EMULATOR_START_FAILED,
         'No available emulator ports in range 5554-5682'
       );
@@ -105,7 +105,7 @@ export class EmulatorAdapter {
     try {
       logStream = createWriteStream(options.logFile, { flags: 'a' });
     } catch (err) {
-      throw new SmaliusError(
+      throw new SniaffError(
         ErrorCode.EMULATOR_START_FAILED,
         `Failed to create log file: ${options.logFile}`,
         { error: String(err) }
@@ -122,7 +122,7 @@ export class EmulatorAdapter {
       await this.delay(1000);
 
       if (!this.supervisor.isRunning(info.pid)) {
-        throw new SmaliusError(
+        throw new SniaffError(
           ErrorCode.EMULATOR_START_FAILED,
           'Emulator process exited immediately',
           { avdName: options.avdName }
@@ -139,18 +139,18 @@ export class EmulatorAdapter {
       return { pid: info.pid, consolePort, adbPort };
     } catch (error) {
       logStream.end();
-      if (error instanceof SmaliusError) throw error;
+      if (error instanceof SniaffError) throw error;
 
       const err = error as Error & { code?: string };
       if (err.code === 'ENOENT') {
-        throw new SmaliusError(
+        throw new SniaffError(
           ErrorCode.EMULATOR_BINARY_NOT_FOUND,
           `Emulator not found at: ${this.config.emulatorPath}`,
           { path: this.config.emulatorPath }
         );
       }
 
-      throw new SmaliusError(
+      throw new SniaffError(
         ErrorCode.EMULATOR_START_FAILED,
         `Failed to start emulator: ${err.message}`,
         { avdName: options.avdName }
@@ -188,7 +188,7 @@ export class EmulatorAdapter {
       await this.delay(this.config.bootPollInterval);
     }
 
-    throw new SmaliusError(
+    throw new SniaffError(
       ErrorCode.EMULATOR_BOOT_TIMEOUT,
       `Emulator boot timed out after ${timeout}ms`,
       { deviceId, timeout }
@@ -208,7 +208,7 @@ export class EmulatorAdapter {
       } catch (error) {
         const err = error as Error & { code?: string };
         if (err.code === 'ENOENT' || err.message?.includes('ENOENT')) {
-          throw new SmaliusError(
+          throw new SniaffError(
             ErrorCode.ADB_NOT_FOUND,
             `ADB not found at: ${this.config.adbPath}`,
             { path: this.config.adbPath }
@@ -219,7 +219,7 @@ export class EmulatorAdapter {
       await this.delay(1000);
     }
 
-    throw new SmaliusError(
+    throw new SniaffError(
       ErrorCode.EMULATOR_BOOT_TIMEOUT,
       `Device ${deviceId} not found in ADB within timeout`,
       { deviceId, timeout }
@@ -236,7 +236,7 @@ export class EmulatorAdapter {
       this.logger.info('Proxy configured', { deviceId, host, port });
     } catch (error) {
       const err = error as Error;
-      throw new SmaliusError(
+      throw new SniaffError(
         ErrorCode.PROXY_CONFIG_FAILED,
         `Failed to configure proxy: ${err.message}`,
         { deviceId, host, port }

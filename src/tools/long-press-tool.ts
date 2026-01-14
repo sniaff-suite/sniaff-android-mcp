@@ -4,7 +4,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { SessionManager } from '../core/session-manager.js';
 import { Config } from '../config.js';
-import { SmaliusError, ErrorCode } from '../types/errors.js';
+import { SniaffError, ErrorCode } from '../types/errors.js';
 
 const execPromise = promisify(exec);
 
@@ -14,10 +14,10 @@ export function registerLongPressTool(
   config: Config
 ): void {
   server.tool(
-    'smalius.long_press',
+    'sniaff.long_press',
     'Long press on a specific coordinate on the Android emulator screen. Useful for context menus, drag operations, etc.',
     {
-      sessionId: z.string().min(1).describe('The session ID returned by smalius.start'),
+      sessionId: z.string().min(1).describe('The session ID returned by sniaff.start'),
       x: z.number().int().min(0).describe('X coordinate in pixels'),
       y: z.number().int().min(0).describe('Y coordinate in pixels'),
       durationMs: z
@@ -32,7 +32,7 @@ export function registerLongPressTool(
       try {
         const session = sessionManager.getSession(args.sessionId);
         if (!session) {
-          throw new SmaliusError(
+          throw new SniaffError(
             ErrorCode.SESSION_NOT_FOUND,
             `Session '${args.sessionId}' not found`
           );
@@ -47,7 +47,7 @@ export function registerLongPressTool(
           );
         } catch (error) {
           const err = error as Error;
-          throw new SmaliusError(
+          throw new SniaffError(
             ErrorCode.ADB_COMMAND_FAILED,
             `Failed to long press: ${err.message}`,
             { deviceId, x: args.x, y: args.y, duration: args.durationMs }
@@ -73,10 +73,10 @@ export function registerLongPressTool(
           ],
         };
       } catch (error) {
-        const smaliusError =
-          error instanceof SmaliusError
+        const sniaffError =
+          error instanceof SniaffError
             ? error
-            : new SmaliusError(
+            : new SniaffError(
                 ErrorCode.INTERNAL_ERROR,
                 error instanceof Error ? error.message : String(error),
                 { originalError: error instanceof Error ? error.stack : undefined }
@@ -89,7 +89,7 @@ export function registerLongPressTool(
               text: JSON.stringify(
                 {
                   success: false,
-                  error: smaliusError.toJSON(),
+                  error: sniaffError.toJSON(),
                 },
                 null,
                 2

@@ -1,10 +1,10 @@
 {
-  "name": "smalius-mcp",
+  "name": "sniaff-android-mcp",
   "version": "0.1.0",
   "description": "MCP server for Android emulator sessions with MITM proxy",
   "type": "module",
   "bin": {
-    "smalius-mcp": "./build/index.js"
+    "sniaff-android-mcp": "./build/index.js"
   },
   "main": "./build/index.js",
   "scripts": {

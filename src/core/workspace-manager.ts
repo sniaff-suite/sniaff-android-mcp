@@ -3,7 +3,7 @@ import * as path from 'path';
 import { Config } from '../config.js';
 import { Logger } from '../utils/logger.js';
 import { SessionMeta, SessionState } from '../types/session.js';
-import { SmaliusError, ErrorCode } from '../types/errors.js';
+import { SniaffError, ErrorCode } from '../types/errors.js';
 
 export interface Workspace {
   path: string;
@@ -56,7 +56,7 @@ export class WorkspaceManager {
       return workspace;
     } catch (error) {
       const err = error as Error;
-      throw new SmaliusError(
+      throw new SniaffError(
         ErrorCode.WORKSPACE_CREATE_FAILED,
         `Failed to create workspace: ${err.message}`,
         { sessionId, path: basePath }

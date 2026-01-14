@@ -4,7 +4,7 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import { SessionManager } from '../core/session-manager.js';
 import { Config } from '../config.js';
-import { SmaliusError, ErrorCode } from '../types/errors.js';
+import { SniaffError, ErrorCode } from '../types/errors.js';
 
 const execPromise = promisify(exec);
 
@@ -14,10 +14,10 @@ export function registerSwipeTool(
   config: Config
 ): void {
   server.tool(
-    'smalius.swipe',
+    'sniaff.swipe',
     'Swipe on the Android emulator screen. Can swipe by direction (from center) or by specifying exact coordinates.',
     {
-      sessionId: z.string().min(1).describe('The session ID returned by smalius.start'),
+      sessionId: z.string().min(1).describe('The session ID returned by sniaff.start'),
       direction: z
         .enum(['up', 'down', 'left', 'right'])
         .optional()
@@ -58,7 +58,7 @@ export function registerSwipeTool(
       try {
         const session = sessionManager.getSession(args.sessionId);
         if (!session) {
-          throw new SmaliusError(
+          throw new SniaffError(
             ErrorCode.SESSION_NOT_FOUND,
             `Session '${args.sessionId}' not found`
           );
@@ -127,7 +127,7 @@ export function registerSwipeTool(
           x1 = args.endX;
           y1 = args.endY;
         } else {
-          throw new SmaliusError(
+          throw new SniaffError(
             ErrorCode.INVALID_ARGUMENT,
             'Must provide either direction OR all coordinates (startX, startY, endX, endY)'
           );
@@ -139,7 +139,7 @@ export function registerSwipeTool(
           );
         } catch (error) {
           const err = error as Error;
-          throw new SmaliusError(
+          throw new SniaffError(
             ErrorCode.ADB_COMMAND_FAILED,
             `Failed to swipe: ${err.message}`,
             { deviceId, x0, y0, x1, y1, duration: args.durationMs }
@@ -166,10 +166,10 @@ export function registerSwipeTool(
           ],
         };
       } catch (error) {
-        const smaliusError =
-          error instanceof SmaliusError
+        const sniaffError =
+          error instanceof SniaffError
             ? error
-            : new SmaliusError(
+            : new SniaffError(
                 ErrorCode.INTERNAL_ERROR,
                 error instanceof Error ? error.message : String(error),
                 { originalError: error instanceof Error ? error.stack : undefined }
@@ -182,7 +182,7 @@ export function registerSwipeTool(
               text: JSON.stringify(
                 {
                   success: false,
-                  error: smaliusError.toJSON(),
+                  error: sniaffError.toJSON(),
                 },
                 null,
                 2
