@@ -6,8 +6,13 @@ import { SniaffError, ErrorCode } from '../types/errors.js';
 export function registerStartTool(server: McpServer, sessionManager: SessionManager): void {
   server.tool(
     'sniaff.start',
-    'Start a new Android emulator session. Automatically creates and roots the SniaffPhone AVD if it does not exist. Returns session info with ports and workspace path.',
+    'Start a new Android emulator session. Automatically creates and roots the SniaffPhone AVD if it does not exist. Returns session info with ports and workspace path. Optionally provide a sessionId from core.start_session() to use shared session state.',
     {
+      sessionId: z
+        .string()
+        .min(1)
+        .optional()
+        .describe('Optional session ID from core.start_session(). If provided, uses shared session state.'),
       emulatorPort: z
         .number()
         .int()
@@ -30,6 +35,7 @@ export function registerStartTool(server: McpServer, sessionManager: SessionMana
     async (args) => {
       try {
         const result = await sessionManager.startSession({
+          sessionId: args.sessionId,
           emulatorPort: args.emulatorPort,
           bootTimeout: args.bootTimeout,
           headless: args.headless,

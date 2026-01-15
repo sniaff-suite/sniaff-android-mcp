@@ -63,13 +63,19 @@ async function main() {
   logger.info('Server connected via stdio transport');
 
   // Handle graceful shutdown
-  const cleanup = async () => {
-    logger.info('Shutting down sniaff-android-mcp');
+  let isShuttingDown = false;
 
-    // Stop all active sessions
+  const shutdown = async (signal: string) => {
+    if (isShuttingDown) return;
+    isShuttingDown = true;
+
+    logger.info('Received shutdown signal, cleaning up...', { signal });
+
+    // Stop all active sessions (kills emulator processes)
     for (const session of sessionManager.getAllSessions()) {
       try {
         await sessionManager.stopSession(session.sessionId);
+        logger.info('Stopped session', { sessionId: session.sessionId });
       } catch (error) {
         logger.error('Failed to stop session during shutdown', {
           sessionId: session.sessionId,
@@ -78,12 +84,32 @@ async function main() {
       }
     }
 
-    await server.close();
+    try {
+      await server.close();
+    } catch {
+      // Ignore close errors
+    }
+
+    logger.info('Shutdown complete');
     process.exit(0);
   };
 
-  process.on('SIGTERM', cleanup);
-  process.on('SIGINT', cleanup);
+  // Handle various termination signals
+  process.on('SIGINT', () => shutdown('SIGINT'));
+  process.on('SIGTERM', () => shutdown('SIGTERM'));
+  process.on('SIGHUP', () => shutdown('SIGHUP'));
+
+  // Handle stdin close (client disconnected)
+  process.stdin.on('close', () => {
+    logger.info('stdin closed, client disconnected');
+    shutdown('stdin-close');
+  });
+
+  // Handle stdin end
+  process.stdin.on('end', () => {
+    logger.info('stdin ended, client disconnected');
+    shutdown('stdin-end');
+  });
 }
 
 main().catch((error) => {

@@ -3,6 +3,7 @@ import { EventEmitter } from 'events';
 import { Config } from '../config.js';
 import { WorkspaceManager, Workspace } from './workspace-manager.js';
 import { ProcessSupervisor } from './process-supervisor.js';
+import { StateClient } from './state-client.js';
 import { EmulatorAdapter } from '../adapters/emulator-adapter.js';
 import { AvdSetupAdapter } from '../adapters/avd-setup-adapter.js';
 import { PortFinder } from '../utils/port-finder.js';
@@ -26,6 +27,7 @@ export class SessionManager extends EventEmitter {
   private portFinder: PortFinder;
   private emulatorAdapter: EmulatorAdapter;
   private avdSetupAdapter: AvdSetupAdapter;
+  private stateClient: StateClient;
 
   constructor(deps: SessionManagerDeps) {
     super();
@@ -36,6 +38,10 @@ export class SessionManager extends EventEmitter {
     this.workspaceManager = new WorkspaceManager(this.config, this.logger);
     this.supervisor = new ProcessSupervisor(this.logger);
     this.portFinder = new PortFinder();
+
+    // StateClient for shared session state (used when sessionId is provided from core.start_session)
+    const sessionsDir = path.join(path.dirname(this.config.workspacesDir), 'sessions');
+    this.stateClient = new StateClient(sessionsDir, this.logger);
 
     this.emulatorAdapter = new EmulatorAdapter({
       config: this.config,
@@ -52,13 +58,41 @@ export class SessionManager extends EventEmitter {
   }
 
   async startSession(input: StartInput): Promise<SessionStartResult> {
-    const sessionId = generateSessionId();
+    // Use provided sessionId (from core.start_session) or generate a new one
+    const useSharedSession = !!input.sessionId;
+    let sessionId: string;
+
+    if (useSharedSession) {
+      // Verify the session exists in shared state
+      const exists = await this.stateClient.sessionExists(input.sessionId!);
+      if (!exists) {
+        throw new SniaffError(
+          ErrorCode.SESSION_NOT_FOUND,
+          `Session '${input.sessionId}' not found. Create it first with core.start_session()`,
+          { sessionId: input.sessionId }
+        );
+      }
+      const isActive = await this.stateClient.isSessionActive(input.sessionId!);
+      if (!isActive) {
+        throw new SniaffError(
+          ErrorCode.SESSION_NOT_FOUND,
+          `Session '${input.sessionId}' is not active`,
+          { sessionId: input.sessionId }
+        );
+      }
+      sessionId = input.sessionId!;
+      // Update shared state to indicate android is starting
+      await this.stateClient.updateAndroid(sessionId, { status: 'starting' });
+    } else {
+      sessionId = generateSessionId();
+    }
+
     let session: Session | null = null;
     let workspace: Workspace | null = null;
     const warnings: string[] = [];
     let avdSetupInfo: AvdSetupInfo | undefined;
 
-    this.logger.info('Starting session', { sessionId });
+    this.logger.info('Starting session', { sessionId, useSharedSession });
 
     try {
       // State: SETUP_AVD - Ensure SniaffPhone AVD exists (create + root if needed)
@@ -202,10 +236,21 @@ export class SessionManager extends EventEmitter {
         workspacePath: session.workspacePath,
       });
 
+      // If using shared session, update the shared state.json
+      if (useSharedSession) {
+        await this.stateClient.updateAndroid(sessionId, {
+          status: 'ready',
+          emulatorPort: session.emulatorPort,
+          adbPort: session.adbPort,
+          pid: session.emulatorPid || undefined,
+        });
+      }
+
       this.logger.info('Session started successfully', {
         sessionId,
         emulatorPort: session.emulatorPort,
         adbPort: session.adbPort,
+        useSharedSession,
       });
 
       const result: SessionStartResult = {

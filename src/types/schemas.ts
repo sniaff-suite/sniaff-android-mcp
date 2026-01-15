@@ -1,6 +1,11 @@
 import { z } from 'zod';
 
 export const StartInputSchema = z.object({
+  sessionId: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('Optional session ID from core.start_session(). If provided, uses shared session state.'),
   emulatorPort: z
     .number()
     .int()
