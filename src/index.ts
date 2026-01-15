@@ -13,6 +13,8 @@ import { registerSwipeTool } from './tools/swipe-tool.js';
 import { registerLongPressTool } from './tools/long-press-tool.js';
 import { registerInstallApkTool } from './tools/install-apk-tool.js';
 import { registerScreenshotTool } from './tools/screenshot-tool.js';
+import { registerSetProxyTool } from './tools/set-proxy-tool.js';
+import { registerRemoveProxyTool } from './tools/remove-proxy-tool.js';
 
 async function main() {
   // Load configuration
@@ -47,6 +49,8 @@ async function main() {
   registerLongPressTool(server, sessionManager, config);
   registerInstallApkTool(server, sessionManager, config);
   registerScreenshotTool(server, sessionManager, config);
+  registerSetProxyTool(server, sessionManager, config);
+  registerRemoveProxyTool(server, sessionManager, config);
 
   // Connect via stdio transport
   const transport = new StdioServerTransport();
