@@ -12,7 +12,6 @@ import { registerTapTool } from './tools/tap-tool.js';
 import { registerSwipeTool } from './tools/swipe-tool.js';
 import { registerLongPressTool } from './tools/long-press-tool.js';
 import { registerInstallApkTool } from './tools/install-apk-tool.js';
-import { registerScreenshotTool } from './tools/screenshot-tool.js';
 import { registerSetProxyTool } from './tools/set-proxy-tool.js';
 import { registerRemoveProxyTool } from './tools/remove-proxy-tool.js';
 import { registerInputTextTool } from './tools/input-text-tool.js';
@@ -51,7 +50,6 @@ async function main() {
   registerSwipeTool(server, sessionManager, config);
   registerLongPressTool(server, sessionManager, config);
   registerInstallApkTool(server, sessionManager, config);
-  registerScreenshotTool(server, sessionManager, config);
   registerSetProxyTool(server, sessionManager, config);
   registerRemoveProxyTool(server, sessionManager, config);
   registerInputTextTool(server, sessionManager, config);

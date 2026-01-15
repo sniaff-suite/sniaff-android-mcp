@@ -5,7 +5,6 @@ export * from './tap-tool.js';
 export * from './swipe-tool.js';
 export * from './long-press-tool.js';
 export * from './install-apk-tool.js';
-export * from './screenshot-tool.js';
 export * from './set-proxy-tool.js';
 export * from './remove-proxy-tool.js';
 export * from './input-text-tool.js';
