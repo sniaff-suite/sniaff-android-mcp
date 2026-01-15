@@ -15,10 +15,11 @@ export function registerInputTextTool(
 ): void {
   server.tool(
     'sniaff.input_text',
-    'Type text into the currently focused input field on the Android emulator. Useful for filling forms, search boxes, etc.',
+    'Type text into the currently focused input field on the Android emulator. Useful for filling forms, search boxes, etc. By default, hides the keyboard after typing.',
     {
       sessionId: z.string().min(1).describe('The session ID returned by sniaff.start'),
       text: z.string().min(1).describe('The text to type into the focused input field'),
+      hideKeyboard: z.boolean().default(true).describe('Hide the keyboard after typing (default: true)'),
     },
     async (args) => {
       try {
@@ -53,6 +54,12 @@ export function registerInputTextTool(
 
         await execPromise(command, { timeout: 30000 });
 
+        // Hide keyboard if requested (using Back key to dismiss)
+        if (args.hideKeyboard) {
+          const hideCommand = `${config.adbPath} -s ${deviceId} shell input keyevent 111`;
+          await execPromise(hideCommand, { timeout: 5000 });
+        }
+
         return {
           content: [
             {
@@ -61,7 +68,8 @@ export function registerInputTextTool(
                 {
                   ok: true,
                   text: args.text,
-                  message: `Text input sent: "${args.text}"`,
+                  keyboardHidden: args.hideKeyboard,
+                  message: `Text input sent: "${args.text}"${args.hideKeyboard ? ' (keyboard hidden)' : ''}`,
                 },
                 null,
                 2
