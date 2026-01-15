@@ -284,7 +284,7 @@ export class AvdSetupAdapter {
 
     const info = await this.supervisor.spawn(
       this.config.emulatorPath,
-      ['-avd', avdName, '-port', '5554', '-no-snapshot-save'],
+      ['-avd', avdName, '-port', '5554', '-no-snapshot-save', '-dns-server', '8.8.8.8'],
       {
         onStdout: (data) => this.logger.debug('Emulator stdout', { data: data.toString() }),
         onStderr: (data) => this.logger.debug('Emulator stderr', { data: data.toString() }),

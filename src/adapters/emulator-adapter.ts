@@ -94,6 +94,8 @@ export class EmulatorAdapter {
       '-port',
       String(consolePort),
       '-no-snapshot-save',
+      '-dns-server',
+      '8.8.8.8',
     ];
 
     if (options.headless) {
