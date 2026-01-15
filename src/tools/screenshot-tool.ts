@@ -27,7 +27,7 @@ export function registerScreenshotTool(
 ): void {
   server.tool(
     'sniaff.screenshot',
-    'Capture a screenshot of the Android emulator screen and save it to the session workspace.',
+    'Capture a screenshot of the Android emulator screen and save it to the session workspace. NOTE: Use this only to capture important checkpoints. To understand UI structure and element locations for automation, use sniaff.ui_dump instead which provides the full UI hierarchy with element IDs, bounds, and text.',
     {
       sessionId: z.string().min(1).describe('The session ID returned by sniaff.start'),
       label: z

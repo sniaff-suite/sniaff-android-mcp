@@ -17,7 +17,7 @@ export function registerInstallApkTool(
 ): void {
   server.tool(
     'sniaff.install_apk',
-    'Install an APK file on the Android emulator. Supports reinstall and automatic runtime permission granting.',
+    'Install an APK file on the Android emulator. If the app is already installed, it will be completely uninstalled first (removing all data and cache) before installing the new version.',
     {
       sessionId: z.string().min(1).describe('The session ID returned by sniaff.start'),
       apkPath: z
@@ -26,10 +26,6 @@ export function registerInstallApkTool(
         .describe(
           'Path to the APK file. Can be absolute or relative to the session workspace'
         ),
-      reinstall: z
-        .boolean()
-        .default(true)
-        .describe('Use -r flag to allow reinstall over existing app (default: true)'),
       grantRuntimePermissions: z
         .boolean()
         .default(true)
@@ -94,11 +90,31 @@ export function registerInstallApkTool(
           }
         }
 
+        // If package name is known, uninstall existing app first (clean install)
+        let wasUninstalled = false;
+        if (packageName) {
+          try {
+            // Check if app is installed
+            const checkResult = await execPromise(
+              `${config.adbPath} -s ${deviceId} shell pm list packages ${packageName}`,
+              { timeout: 10000 }
+            );
+
+            if (checkResult.stdout.includes(packageName)) {
+              // App exists, uninstall it completely (removes app + data + cache)
+              await execPromise(
+                `${config.adbPath} -s ${deviceId} uninstall ${packageName}`,
+                { timeout: 30000 }
+              );
+              wasUninstalled = true;
+            }
+          } catch {
+            // Ignore uninstall errors, proceed with install
+          }
+        }
+
         // Build adb install command with flags
         const installFlags: string[] = [];
-        if (args.reinstall) {
-          installFlags.push('-r');
-        }
         if (args.grantRuntimePermissions) {
           installFlags.push('-g');
         }
@@ -180,6 +196,7 @@ export function registerInstallApkTool(
                 {
                   ok: true,
                   packageName,
+                  wasUninstalled,
                   stdout: stdout.trimEnd(),
                   stderr: stderr.trimEnd(),
                 },
